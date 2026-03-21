@@ -1,793 +1,1106 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WireGuard 키 발급기</title>
-  <style>
-    :root {
-      --bg: #0b1020;
-      --panel: #121a31;
-      --panel-2: #1a2545;
-      --text: #eef3ff;
-      --muted: #b8c2e0;
-      --primary: #7aa2ff;
-      --primary-2: #4a7cff;
-      --ok: #2bb673;
-      --warn: #ffb020;
-      --danger: #ff6b6b;
-      --border: rgba(255,255,255,0.12);
-      --shadow: 0 10px 28px rgba(0,0,0,0.28);
-      --radius: 18px;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WireGuard 키 발급기</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121a31;
+        --panel-2: #1a2545;
+        --text: #eef3ff;
+        --muted: #b8c2e0;
+        --primary: #7aa2ff;
+        --primary-2: #4a7cff;
+        --ok: #2bb673;
+        --warn: #ffb020;
+        --danger: #ff6b6b;
+        --border: rgba(255, 255, 255, 0.12);
+        --shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+        --radius: 18px;
+      }
 
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", Arial, sans-serif;
-      background: linear-gradient(180deg, #0a0f1f 0%, #0d1430 100%);
-      color: var(--text);
-      line-height: 1.5;
-    }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          "Noto Sans KR",
+          Arial,
+          sans-serif;
+        background: linear-gradient(180deg, #0a0f1f 0%, #0d1430 100%);
+        color: var(--text);
+        line-height: 1.5;
+      }
 
-    .container {
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 32px 20px 64px;
-    }
+      .container {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 32px 20px 64px;
+      }
 
-    .hero {
-      background: linear-gradient(135deg, rgba(122,162,255,0.18), rgba(74,124,255,0.10));
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 28px;
-      box-shadow: var(--shadow);
-      margin-bottom: 24px;
-    }
+      .hero {
+        background: linear-gradient(
+          135deg,
+          rgba(122, 162, 255, 0.18),
+          rgba(74, 124, 255, 0.1)
+        );
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 28px;
+        box-shadow: var(--shadow);
+        margin-bottom: 24px;
+      }
 
-    h1, h2, h3 { margin: 0 0 12px; }
-    h1 { font-size: 30px; }
-    h2 { font-size: 22px; margin-top: 0; }
-    h3 { font-size: 18px; }
-    p { margin: 0 0 12px; color: var(--muted); }
-    .small { font-size: 13px; color: var(--muted); }
+      h1,
+      h2,
+      h3 {
+        margin: 0 0 12px;
+      }
+      h1 {
+        font-size: 30px;
+      }
+      h2 {
+        font-size: 22px;
+        margin-top: 0;
+      }
+      h3 {
+        font-size: 18px;
+      }
+      p {
+        margin: 0 0 12px;
+        color: var(--muted);
+      }
+      .small {
+        font-size: 13px;
+        color: var(--muted);
+      }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 20px;
-    }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 20px;
+      }
 
-    .card {
-      background: rgba(18, 26, 49, 0.95);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 22px;
-      box-shadow: var(--shadow);
-    }
+      .card {
+        background: rgba(18, 26, 49, 0.95);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px;
+        box-shadow: var(--shadow);
+      }
 
-    .span-7 { grid-column: span 7; }
-    .span-5 { grid-column: span 5; }
-    .span-12 { grid-column: span 12; }
+      .span-7 {
+        grid-column: span 7;
+      }
+      .span-5 {
+        grid-column: span 5;
+      }
+      .span-12 {
+        grid-column: span 12;
+      }
 
-    .step-list {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-      margin-top: 18px;
-    }
+      .step-list {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-top: 18px;
+      }
 
-    .step {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-    }
+      .step {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+      }
 
-    .step .num {
-      display: inline-flex;
-      width: 30px;
-      height: 30px;
-      border-radius: 999px;
-      align-items: center;
-      justify-content: center;
-      background: rgba(122,162,255,0.22);
-      color: #fff;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
+      .step .num {
+        display: inline-flex;
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        align-items: center;
+        justify-content: center;
+        background: rgba(122, 162, 255, 0.22);
+        color: #fff;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
 
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
 
-    input[type="text"], textarea {
-      width: 100%;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(9, 15, 31, 0.9);
-      color: var(--text);
-      border-radius: 14px;
-      padding: 12px 14px;
-      outline: none;
-      font-size: 14px;
-    }
+      input[type="text"],
+      textarea {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(9, 15, 31, 0.9);
+        color: var(--text);
+        border-radius: 14px;
+        padding: 12px 14px;
+        outline: none;
+        font-size: 14px;
+      }
 
-    input[type="text"]:focus, textarea:focus {
-      border-color: rgba(122,162,255,0.8);
-      box-shadow: 0 0 0 3px rgba(122,162,255,0.18);
-    }
+      input[type="text"]:focus,
+      textarea:focus {
+        border-color: rgba(122, 162, 255, 0.8);
+        box-shadow: 0 0 0 3px rgba(122, 162, 255, 0.18);
+      }
 
-    textarea {
-      min-height: 180px;
-      resize: vertical;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      line-height: 1.45;
-    }
+      textarea {
+        min-height: 180px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        line-height: 1.45;
+      }
 
-    .row {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
 
-    .field + .field { margin-top: 16px; }
+      .field + .field {
+        margin-top: 16px;
+      }
 
-    button, .button-link {
-      border: 0;
-      border-radius: 14px;
-      padding: 12px 16px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 14px;
-      transition: transform 0.12s ease, opacity 0.12s ease, background-color 0.12s ease;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
+      button,
+      .button-link {
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 16px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 14px;
+        transition:
+          transform 0.12s ease,
+          opacity 0.12s ease,
+          background-color 0.12s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-    button:hover, .button-link:hover { transform: translateY(-1px); }
-    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+      button:hover,
+      .button-link:hover {
+        transform: translateY(-1px);
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+      }
 
-    .primary { background: var(--primary-2); color: white; }
-    .secondary { background: rgba(255,255,255,0.08); color: white; }
-    .success { background: rgba(43,182,115,0.18); color: #dff9ec; border: 1px solid rgba(43,182,115,0.25); }
-    .warning { background: rgba(255,176,32,0.18); color: #fff4d6; border: 1px solid rgba(255,176,32,0.28); }
+      .primary {
+        background: var(--primary-2);
+        color: white;
+      }
+      .secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+      }
+      .success {
+        background: rgba(43, 182, 115, 0.18);
+        color: #dff9ec;
+        border: 1px solid rgba(43, 182, 115, 0.25);
+      }
+      .warning {
+        background: rgba(255, 176, 32, 0.18);
+        color: #fff4d6;
+        border: 1px solid rgba(255, 176, 32, 0.28);
+      }
 
-    .note {
-      border-radius: 14px;
-      padding: 14px 16px;
-      font-size: 14px;
-      margin-top: 16px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
-      color: var(--muted);
-    }
+      .note {
+        border-radius: 14px;
+        padding: 14px 16px;
+        font-size: 14px;
+        margin-top: 16px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+      }
 
-    .note.warn {
-      border-color: rgba(255,176,32,0.35);
-      background: rgba(255,176,32,0.12);
-      color: #ffe8b3;
-    }
+      .note.warn {
+        border-color: rgba(255, 176, 32, 0.35);
+        background: rgba(255, 176, 32, 0.12);
+        color: #ffe8b3;
+      }
 
-    .result-box {
-      background: rgba(9, 15, 31, 0.9);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 16px;
-      padding: 14px;
-      word-break: break-all;
-    }
+      .result-box {
+        background: rgba(9, 15, 31, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 16px;
+        padding: 14px;
+        word-break: break-all;
+      }
 
-    .kv {
-      display: grid;
-      grid-template-columns: 150px 1fr;
-      gap: 10px;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      font-size: 14px;
-    }
-    .kv:last-child { border-bottom: 0; }
-    .kv .key { color: var(--muted); }
+      .kv {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 10px;
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 14px;
+      }
+      .kv:last-child {
+        border-bottom: 0;
+      }
+      .kv .key {
+        color: var(--muted);
+      }
 
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 13px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.10);
-      color: var(--muted);
-      margin-right: 8px;
-      margin-top: 8px;
-    }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--muted);
+        margin-right: 8px;
+        margin-top: 8px;
+      }
 
-    .history-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
+      .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
 
-    .history-table th,
-    .history-table td {
-      text-align: left;
-      padding: 10px 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      vertical-align: top;
-    }
+      .history-table th,
+      .history-table td {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        vertical-align: top;
+      }
 
-    .history-table th { color: var(--muted); font-weight: 600; }
-    .hidden { display: none !important; }
+      .history-table th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .hidden {
+        display: none !important;
+      }
 
-    .status {
-      min-height: 24px;
-      font-size: 14px;
-      margin-top: 12px;
-    }
+      .status {
+        min-height: 24px;
+        font-size: 14px;
+        margin-top: 12px;
+      }
 
-    .status.ok { color: #a9f2ca; }
-    .status.error { color: #ffb8b8; }
+      .status.ok {
+        color: #a9f2ca;
+      }
+      .status.error {
+        color: #ffb8b8;
+      }
 
-    code.inline {
-      background: rgba(255,255,255,0.08);
-      padding: 2px 6px;
-      border-radius: 8px;
-      font-size: 13px;
-    }
+      .qr-wrap {
+        margin-top: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 16px;
+        background: rgba(9, 15, 31, 0.9);
+        padding: 16px;
+      }
 
-    @media (max-width: 820px) {
-      .span-7, .span-5 { grid-column: span 12; }
-      .step-list { grid-template-columns: 1fr; }
-      .kv { grid-template-columns: 1fr; gap: 4px; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <section class="hero">
-      <h1>WireGuard 키 발급기</h1>
-      <p>
-        부원이 로컬에서 직접 키를 생성하고, <code class="inline">.conf</code> 파일을 다운로드한 뒤,
-        화면에 표시된 <strong>공개키</strong>를 운영진에게 제출하기 위한 간단한 발급 페이지입니다.
-      </p>
-      <div class="step-list">
-        <div class="step">
-          <div class="num">1</div>
-          <h3>WireGuard 설치</h3>
-          <p>공식 클라이언트를 먼저 설치합니다. 설치가 끝나면 아래 발급기로 설정 파일을 만듭니다.</p>
+      .qr-box {
+        width: fit-content;
+        min-width: 240px;
+        min-height: 240px;
+        padding: 10px;
+        border-radius: 14px;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .qr-box img,
+      .qr-box canvas {
+        display: block;
+        max-width: 220px;
+        max-height: 220px;
+      }
+
+      code.inline {
+        background: rgba(255, 255, 255, 0.08);
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 13px;
+      }
+
+      @media (max-width: 820px) {
+        .span-7,
+        .span-5 {
+          grid-column: span 12;
+        }
+        .step-list {
+          grid-template-columns: 1fr;
+        }
+        .kv {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <section class="hero">
+        <h1>WireGuard 키 발급기</h1>
+        <p>
+          부원이 로컬에서 직접 키를 생성하고,
+          <code class="inline">.conf</code> 파일을 다운로드한 뒤, 화면에 표시된
+          <strong>공개키</strong>를 운영진에게 제출하기 위한 간단한 발급
+          페이지입니다.
+        </p>
+        <div class="step-list">
+          <div class="step">
+            <div class="num">1</div>
+            <h3>WireGuard 설치</h3>
+            <p>
+              공식 클라이언트를 먼저 설치합니다. 설치가 끝나면 아래 발급기로
+              설정 파일을 만듭니다.
+            </p>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <h3>키 발급</h3>
+            <p>
+              ".conf 다운로드" 버튼 누르기. 버튼을 누르면 개인키·공개키와 임시
+              내부 주소가 생성되고, 바로 <code class="inline">.conf</code>를
+              저장할 수 있습니다.
+            </p>
+          </div>
+          <div class="step">
+            <div class="num">3</div>
+            <h3>공개키 제출</h3>
+            <p>
+              "자동 입력된 폼 열기" 누르거나, 화면에 나온 공개키를 구글폼 또는
+              이승호 카카오톡으로 보낼 수 있습니다.
+            </p>
+          </div>
         </div>
-        <div class="step">
-          <div class="num">2</div>
-          <h3>키 발급</h3>
-          <p>".conf 다운로드" 버튼 누르기. 버튼을 누르면 개인키·공개키와 임시 내부 주소가 생성되고, 바로 <code class="inline">.conf</code>를 저장할 수 있습니다.</p>
-        </div>
-        <div class="step">
-          <div class="num">3</div>
-          <h3>공개키 제출</h3>
-          <p>"자동 입력된 폼 열기" 누르거나, 화면에 나온 공개키를 구글폼 또는 이승호 카카오톡으로 보낼 수 있습니다.</p>
-        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card span-5">
+          <h2>발급 입력</h2>
+          <div class="field">
+            <label for="memberName">이름</label>
+            <input id="memberName" type="text" placeholder="예: 이승호" />
+          </div>
+          <div class="field">
+            <label for="deviceName">기기명</label>
+            <input
+              id="deviceName"
+              type="text"
+              placeholder="예: MacBook-Air / Windows-Laptop"
+            />
+          </div>
+
+          <div class="note warn">
+            현재 주소는 <strong>10.0.0.10 ~ 10.0.255.255</strong> 범위에서 랜덤
+            배정됩니다. 로컬 페이지 특성상 전체 부원 기준 중복 검사는
+            불가능하므로, 충돌 시 운영진이 수동으로 조정해야 합니다.
+          </div>
+
+          <div class="row" style="margin-top: 18px">
+            <button id="generateBtn" class="primary">키 발급하기</button>
+            <button id="clearHistoryBtn" class="secondary" type="button">
+              내 로컬 기록 지우기
+            </button>
+          </div>
+
+          <div id="status" class="status"></div>
+
+          <div class="note">
+            서버 공개키, 일반 폼 링크, 자동 입력용 프리필 링크는 파일 상단의
+            <code class="inline">APP_CONFIG</code> 에서 수정하면 됩니다.
+          </div>
+
+          <div style="margin-top: 18px">
+            <a
+              class="button-link secondary"
+              href="https://www.wireguard.com/install/"
+              target="_blank"
+              rel="noreferrer"
+              >WireGuard 설치 페이지 열기</a
+            >
+          </div>
+        </section>
+
+        <section class="card span-7">
+          <h2>발급 결과</h2>
+          <div id="emptyResult">
+            <p>
+              아직 발급된 키가 없습니다. 왼쪽에서 정보를 입력하고
+              <strong>키 발급하기</strong>를 눌러주세요.
+            </p>
+          </div>
+
+          <div id="resultSection" class="hidden">
+            <div class="result-box">
+              <div class="kv">
+                <div class="key">할당 주소</div>
+                <div id="addressText"></div>
+              </div>
+              <div class="kv">
+                <div class="key">사용자 공개키</div>
+                <div id="publicKeyText"></div>
+              </div>
+              <div class="kv">
+                <div class="key">파일명</div>
+                <div id="fileNameText"></div>
+              </div>
+            </div>
+
+            <div class="row" style="margin-top: 16px">
+              <button id="downloadBtn" class="primary" type="button">
+                .conf 다운로드
+              </button>
+              <button id="copyPublicKeyBtn" class="secondary" type="button">
+                공개키 복사
+              </button>
+              <button id="copySubmissionBtn" class="secondary" type="button">
+                제출용 텍스트 복사
+              </button>
+              <a
+                id="formLinkBtn"
+                class="button-link success hidden"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+                >일반 제출 폼 열기</a
+              >
+              <a
+                id="prefillFormBtn"
+                class="button-link warning hidden"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+                >자동 입력된 폼 열기</a
+              >
+            </div>
+
+            <div class="field" style="margin-top: 18px">
+              <label for="submissionText">카카오톡 / 구글폼 제출용 내용</label>
+              <textarea id="submissionText" readonly></textarea>
+            </div>
+
+            <div class="field" style="margin-top: 16px">
+              <label for="configPreview">생성된 WireGuard 설정 미리보기</label>
+              <textarea id="configPreview" readonly></textarea>
+            </div>
+
+            <div class="qr-wrap">
+              <label>모바일 추가용 QR 코드</label>
+              <div class="row">
+                <div id="qrCodeBox" class="qr-box"></div>
+                <p class="small" style="margin: 0; max-width: 360px">
+                  WireGuard 앱에서 <strong>QR 코드로 가져오기</strong>를 선택한
+                  뒤 스캔하세요. QR에는 위 설정 전체가 포함되며, 같은 기기에서
+                  재발급 시 QR도 새로 생성됩니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card span-12">
+          <h2>이 브라우저에서 생성한 기록</h2>
+          <p>
+            중복 생성을 조금이라도 줄이기 위해, 이 브라우저에서 한 번 생성한
+            주소와 공개키를 로컬에 저장해둡니다.
+          </p>
+          <div id="historyEmpty" class="small">아직 기록이 없습니다.</div>
+          <div id="historyWrap" class="hidden">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>생성 시각</th>
+                  <th>이름</th>
+                  <th>기기명</th>
+                  <th>주소</th>
+                  <th>공개키</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </section>
       </div>
-    </section>
-
-    <div class="grid">
-      <section class="card span-5">
-        <h2>발급 입력</h2>
-        <div class="field">
-          <label for="memberName">이름</label>
-          <input id="memberName" type="text" placeholder="예: 이승호" />
-        </div>
-        <div class="field">
-          <label for="deviceName">기기명</label>
-          <input id="deviceName" type="text" placeholder="예: MacBook-Air / Windows-Laptop" />
-        </div>
-
-        <div class="note warn">
-          현재 주소는 <strong>10.0.0.10 ~ 10.0.255.255</strong> 범위에서 랜덤 배정됩니다.
-          로컬 페이지 특성상 전체 부원 기준 중복 검사는 불가능하므로, 충돌 시 운영진이 수동으로 조정해야 합니다.
-        </div>
-
-        <div class="row" style="margin-top: 18px;">
-          <button id="generateBtn" class="primary">키 발급하기</button>
-          <button id="clearHistoryBtn" class="secondary" type="button">내 로컬 기록 지우기</button>
-        </div>
-
-        <div id="status" class="status"></div>
-
-        <div class="note">
-          서버 공개키, 일반 폼 링크, 자동 입력용 프리필 링크는 파일 상단의 <code class="inline">APP_CONFIG</code> 에서 수정하면 됩니다.
-        </div>
-
-        <div style="margin-top: 18px;">
-          <a class="button-link secondary" href="https://www.wireguard.com/install/" target="_blank" rel="noreferrer">WireGuard 설치 페이지 열기</a>
-        </div>
-      </section>
-
-      <section class="card span-7">
-        <h2>발급 결과</h2>
-        <div id="emptyResult">
-          <p>아직 발급된 키가 없습니다. 왼쪽에서 정보를 입력하고 <strong>키 발급하기</strong>를 눌러주세요.</p>
-        </div>
-
-        <div id="resultSection" class="hidden">
-          <div class="result-box">
-            <div class="kv">
-              <div class="key">할당 주소</div>
-              <div id="addressText"></div>
-            </div>
-            <div class="kv">
-              <div class="key">사용자 공개키</div>
-              <div id="publicKeyText"></div>
-            </div>
-            <div class="kv">
-              <div class="key">파일명</div>
-              <div id="fileNameText"></div>
-            </div>
-          </div>
-
-          <div class="row" style="margin-top: 16px;">
-            <button id="downloadBtn" class="primary" type="button">.conf 다운로드</button>
-            <button id="copyPublicKeyBtn" class="secondary" type="button">공개키 복사</button>
-            <button id="copySubmissionBtn" class="secondary" type="button">제출용 텍스트 복사</button>
-            <a id="formLinkBtn" class="button-link success hidden" href="#" target="_blank" rel="noreferrer">일반 제출 폼 열기</a>
-            <a id="prefillFormBtn" class="button-link warning hidden" href="#" target="_blank" rel="noreferrer">자동 입력된 폼 열기</a>
-          </div>
-
-          <div class="field" style="margin-top: 18px;">
-            <label for="submissionText">카카오톡 / 구글폼 제출용 내용</label>
-            <textarea id="submissionText" readonly></textarea>
-          </div>
-
-          <div class="field" style="margin-top: 16px;">
-            <label for="configPreview">생성된 WireGuard 설정 미리보기</label>
-            <textarea id="configPreview" readonly></textarea>
-          </div>
-        </div>
-      </section>
-
-      <section class="card span-12">
-        <h2>이 브라우저에서 생성한 기록</h2>
-        <p>중복 생성을 조금이라도 줄이기 위해, 이 브라우저에서 한 번 생성한 주소와 공개키를 로컬에 저장해둡니다.</p>
-        <div id="historyEmpty" class="small">아직 기록이 없습니다.</div>
-        <div id="historyWrap" class="hidden">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>생성 시각</th>
-                <th>이름</th>
-                <th>기기명</th>
-                <th>주소</th>
-                <th>공개키</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody"></tbody>
-          </table>
-        </div>
-      </section>
     </div>
-  </div>
 
-  <script>
-    const APP_CONFIG = {
-      SERVER_PUBLIC_KEY: '5goBKyF0DZle4dv37IaNMjHQ+bhbjfK0R9x3Y0TOlG4=',
-      ENDPOINT: 'svr.certcbnu.kr:51820',
-      DNS: '172.30.0.2, 168.126.63.2',
-      MTU: '1420',
-      ALLOWED_IPS: '172.25.0.0/8, 172.30.0.0/8',
-      PERSISTENT_KEEPALIVE: '21',
-      ADDRESS_OCTET_2: 0,
-      ADDRESS_OCTET_3_MIN: 0,
-      ADDRESS_OCTET_3_MAX: 255,
-      ADDRESS_OCTET_4_MIN: 10,
-      ADDRESS_OCTET_4_MAX: 255,
-      ADDRESS_CIDR: '/32',
-      FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSetPvPROxMiQvnUuRGtuOmiluwVEGnEcd_LWnZXQ9ayRcEqgw/viewform?usp=publish-editor',
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+      const APP_CONFIG = {
+        SERVER_PUBLIC_KEY: "5goBKyF0DZle4dv37IaNMjHQ+bhbjfK0R9x3Y0TOlG4=",
+        ENDPOINT: "svr.certcbnu.kr:51820",
+        DNS: "172.30.0.2, 168.126.63.2",
+        MTU: "1420",
+        ALLOWED_IPS: "172.25.0.0/8, 172.30.0.0/8",
+        PERSISTENT_KEEPALIVE: "21",
+        ADDRESS_OCTET_2: 0,
+        ADDRESS_OCTET_3_MIN: 0,
+        ADDRESS_OCTET_3_MAX: 255,
+        ADDRESS_OCTET_4_MIN: 10,
+        ADDRESS_OCTET_4_MAX: 255,
+        ADDRESS_CIDR: "/32",
+        FORM_URL:
+          "https://docs.google.com/forms/d/e/1FAIpQLSetPvPROxMiQvnUuRGtuOmiluwVEGnEcd_LWnZXQ9ayRcEqgw/viewform?usp=publish-editor",
 
-      // 아래 둘 중 하나만 쓰면 됩니다.
-      // 1) 가장 쉬운 방법: Google Forms에서 "Pre-fill form"으로 만든 링크를 그대로 붙여넣기
-      FORM_PREFILL_TEMPLATE_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSetPvPROxMiQvnUuRGtuOmiluwVEGnEcd_LWnZXQ9ayRcEqgw/viewform?usp=pp_url&entry.511062958=__NAME__&entry.231639598=__DEVICE__&entry.67768063=__PUBKEY__&entry.1850814506=__IP__',
+        // 아래 둘 중 하나만 쓰면 됩니다.
+        // 1) 가장 쉬운 방법: Google Forms에서 "Pre-fill form"으로 만든 링크를 그대로 붙여넣기
+        FORM_PREFILL_TEMPLATE_URL:
+          "https://docs.google.com/forms/d/e/1FAIpQLSetPvPROxMiQvnUuRGtuOmiluwVEGnEcd_LWnZXQ9ayRcEqgw/viewform?usp=pp_url&entry.511062958=__NAME__&entry.231639598=__DEVICE__&entry.67768063=__PUBKEY__&entry.1850814506=__IP__",
 
-      // 2) 혹시 entry 번호를 이미 안다면 직접 넣기
-      FORM_ENTRY_IDS: {
-        memberName: '',
-        deviceName: '',
-        publicKey: '',
-        address: ''
-      },
+        // 2) 혹시 entry 번호를 이미 안다면 직접 넣기
+        FORM_ENTRY_IDS: {
+          memberName: "",
+          deviceName: "",
+          publicKey: "",
+          address: "",
+        },
 
-      // FORM_PREFILL_TEMPLATE_URL을 쓸 경우, 미리 채운 예시값과 아래 토큰이 일치해야 자동 치환됩니다.
-      FORM_TEMPLATE_TOKENS: {
-        memberName: '__NAME__',
-        deviceName: '__DEVICE__',
-        publicKey: '__PUBKEY__',
-        address: '__IP__'
-      },
+        // FORM_PREFILL_TEMPLATE_URL을 쓸 경우, 미리 채운 예시값과 아래 토큰이 일치해야 자동 치환됩니다.
+        FORM_TEMPLATE_TOKENS: {
+          memberName: "__NAME__",
+          deviceName: "__DEVICE__",
+          publicKey: "__PUBKEY__",
+          address: "__IP__",
+        },
 
-      AUTO_OPEN_PREFILLED_FORM: false
-    };
+        AUTO_OPEN_PREFILLED_FORM: false,
+      };
 
-    const STORAGE_KEY = 'wg_local_records_v1';
+      const STORAGE_KEY = "wg_local_records_v1";
 
-    const memberNameEl = document.getElementById('memberName');
-    const deviceNameEl = document.getElementById('deviceName');
-    const generateBtn = document.getElementById('generateBtn');
-    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-    const statusEl = document.getElementById('status');
+      const memberNameEl = document.getElementById("memberName");
+      const deviceNameEl = document.getElementById("deviceName");
+      const generateBtn = document.getElementById("generateBtn");
+      const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+      const statusEl = document.getElementById("status");
 
-    const emptyResultEl = document.getElementById('emptyResult');
-    const resultSectionEl = document.getElementById('resultSection');
-    const addressTextEl = document.getElementById('addressText');
-    const publicKeyTextEl = document.getElementById('publicKeyText');
-    const fileNameTextEl = document.getElementById('fileNameText');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const copyPublicKeyBtn = document.getElementById('copyPublicKeyBtn');
-    const copySubmissionBtn = document.getElementById('copySubmissionBtn');
-    const formLinkBtn = document.getElementById('formLinkBtn');
-    const prefillFormBtn = document.getElementById('prefillFormBtn');
-    const submissionTextEl = document.getElementById('submissionText');
-    const configPreviewEl = document.getElementById('configPreview');
-    const historyEmptyEl = document.getElementById('historyEmpty');
-    const historyWrapEl = document.getElementById('historyWrap');
-    const historyBodyEl = document.getElementById('historyBody');
+      const emptyResultEl = document.getElementById("emptyResult");
+      const resultSectionEl = document.getElementById("resultSection");
+      const addressTextEl = document.getElementById("addressText");
+      const publicKeyTextEl = document.getElementById("publicKeyText");
+      const fileNameTextEl = document.getElementById("fileNameText");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const copyPublicKeyBtn = document.getElementById("copyPublicKeyBtn");
+      const copySubmissionBtn = document.getElementById("copySubmissionBtn");
+      const formLinkBtn = document.getElementById("formLinkBtn");
+      const prefillFormBtn = document.getElementById("prefillFormBtn");
+      const submissionTextEl = document.getElementById("submissionText");
+      const configPreviewEl = document.getElementById("configPreview");
+      const qrCodeBoxEl = document.getElementById("qrCodeBox");
+      const historyEmptyEl = document.getElementById("historyEmpty");
+      const historyWrapEl = document.getElementById("historyWrap");
+      const historyBodyEl = document.getElementById("historyBody");
 
-    let latestGenerated = null;
+      let latestGenerated = null;
 
-    function setStatus(message = '', type = '') {
-      statusEl.textContent = message;
-      statusEl.className = 'status';
-      if (type) statusEl.classList.add(type);
-    }
-
-    function sanitizeFilePart(value, fallback) {
-      const cleaned = (value || '').trim().replace(/[^a-zA-Z0-9가-힣_-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      return cleaned || fallback;
-    }
-
-    function base64UrlToBase64(str) {
-      const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-      const padLength = (4 - (base64.length % 4)) % 4;
-      return base64 + '='.repeat(padLength);
-    }
-
-    function getRecords() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
-      } catch {
-        return [];
-      }
-    }
-
-    function saveRecords(records) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-    }
-
-    function renderHistory() {
-      const records = getRecords();
-      if (!records.length) {
-        historyEmptyEl.classList.remove('hidden');
-        historyWrapEl.classList.add('hidden');
-        historyBodyEl.innerHTML = '';
-        return;
+      function setStatus(message = "", type = "") {
+        statusEl.textContent = message;
+        statusEl.className = "status";
+        if (type) statusEl.classList.add(type);
       }
 
-      historyEmptyEl.classList.add('hidden');
-      historyWrapEl.classList.remove('hidden');
-      historyBodyEl.innerHTML = records.slice().reverse().map((record) => `
+      function sanitizeFilePart(value, fallback) {
+        const cleaned = (value || "")
+          .trim()
+          .replace(/[^a-zA-Z0-9가-힣_-]+/g, "-")
+          .replace(/-+/g, "-")
+          .replace(/^-|-$/g, "");
+        return cleaned || fallback;
+      }
+
+      function base64UrlToBase64(str) {
+        const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
+        const padLength = (4 - (base64.length % 4)) % 4;
+        return base64 + "=".repeat(padLength);
+      }
+
+      function getRecords() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveRecords(records) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      }
+
+      function renderHistory() {
+        const records = getRecords();
+        if (!records.length) {
+          historyEmptyEl.classList.remove("hidden");
+          historyWrapEl.classList.add("hidden");
+          historyBodyEl.innerHTML = "";
+          return;
+        }
+
+        historyEmptyEl.classList.add("hidden");
+        historyWrapEl.classList.remove("hidden");
+        historyBodyEl.innerHTML = records
+          .slice()
+          .reverse()
+          .map(
+            (record) => `
         <tr>
           <td>${escapeHtml(record.createdAt)}</td>
-          <td>${escapeHtml(record.memberName || '-')}</td>
-          <td>${escapeHtml(record.deviceName || '-')}</td>
+          <td>${escapeHtml(record.memberName || "-")}</td>
+          <td>${escapeHtml(record.deviceName || "-")}</td>
           <td>${escapeHtml(record.address)}</td>
           <td title="${escapeHtml(record.publicKey)}">${escapeHtml(shorten(record.publicKey, 28))}</td>
         </tr>
-      `).join('');
-    }
+      `,
+          )
+          .join("");
+      }
 
-    function shorten(value, length = 20) {
-      if (!value || value.length <= length) return value || '';
-      const head = Math.max(8, Math.floor((length - 3) / 2));
-      const tail = Math.max(8, length - head - 3);
-      return `${value.slice(0, head)}...${value.slice(-tail)}`;
-    }
+      function shorten(value, length = 20) {
+        if (!value || value.length <= length) return value || "";
+        const head = Math.max(8, Math.floor((length - 3) / 2));
+        const tail = Math.max(8, length - head - 3);
+        return `${value.slice(0, head)}...${value.slice(-tail)}`;
+      }
 
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
 
-    function pickRandomAddress() {
-      const records = getRecords();
+      function pickRandomAddress() {
+        const records = getRecords();
 
-      const usedAddresses = new Set(
-       records.map((record) => String(record.address).split('/')[0])
-      );
+        const usedAddresses = new Set(
+          records.map((record) => String(record.address).split("/")[0]),
+        );
 
         const candidates = [];
 
-       for (let third = APP_CONFIG.ADDRESS_OCTET_3_MIN; third <= APP_CONFIG.ADDRESS_OCTET_3_MAX; third += 1) {
-         for (let fourth = APP_CONFIG.ADDRESS_OCTET_4_MIN; fourth <= APP_CONFIG.ADDRESS_OCTET_4_MAX; fourth += 1) {
-           const ip = `10.${APP_CONFIG.ADDRESS_OCTET_2}.${third}.${fourth}`;
-           if (!usedAddresses.has(ip)) {
+        for (
+          let third = APP_CONFIG.ADDRESS_OCTET_3_MIN;
+          third <= APP_CONFIG.ADDRESS_OCTET_3_MAX;
+          third += 1
+        ) {
+          for (
+            let fourth = APP_CONFIG.ADDRESS_OCTET_4_MIN;
+            fourth <= APP_CONFIG.ADDRESS_OCTET_4_MAX;
+            fourth += 1
+          ) {
+            const ip = `10.${APP_CONFIG.ADDRESS_OCTET_2}.${third}.${fourth}`;
+            if (!usedAddresses.has(ip)) {
               candidates.push(ip);
             }
           }
-       }
+        }
 
         if (!candidates.length) {
           const third =
-            Math.floor(Math.random() * (APP_CONFIG.ADDRESS_OCTET_3_MAX - APP_CONFIG.ADDRESS_OCTET_3_MIN + 1))
-           + APP_CONFIG.ADDRESS_OCTET_3_MIN;
+            Math.floor(
+              Math.random() *
+                (APP_CONFIG.ADDRESS_OCTET_3_MAX -
+                  APP_CONFIG.ADDRESS_OCTET_3_MIN +
+                  1),
+            ) + APP_CONFIG.ADDRESS_OCTET_3_MIN;
 
-         const fourth =
-           Math.floor(Math.random() * (APP_CONFIG.ADDRESS_OCTET_4_MAX - APP_CONFIG.ADDRESS_OCTET_4_MIN + 1))
-           + APP_CONFIG.ADDRESS_OCTET_4_MIN;
+          const fourth =
+            Math.floor(
+              Math.random() *
+                (APP_CONFIG.ADDRESS_OCTET_4_MAX -
+                  APP_CONFIG.ADDRESS_OCTET_4_MIN +
+                  1),
+            ) + APP_CONFIG.ADDRESS_OCTET_4_MIN;
 
-         return `10.${APP_CONFIG.ADDRESS_OCTET_2}.${third}.${fourth}${APP_CONFIG.ADDRESS_CIDR}`;
+          return `10.${APP_CONFIG.ADDRESS_OCTET_2}.${third}.${fourth}${APP_CONFIG.ADDRESS_CIDR}`;
         }
 
-        const pickedIp = candidates[Math.floor(Math.random() * candidates.length)];
+        const pickedIp =
+          candidates[Math.floor(Math.random() * candidates.length)];
         return `${pickedIp}${APP_CONFIG.ADDRESS_CIDR}`;
       }
 
-    async function generateWireGuardKeyPair() {
-      if (!window.crypto?.subtle) {
-        throw new Error('이 브라우저에서는 Web Crypto API를 사용할 수 없습니다. 최신 Chrome, Edge, Safari로 다시 시도해주세요.');
-      }
+      async function generateWireGuardKeyPair() {
+        if (!window.crypto?.subtle) {
+          throw new Error(
+            "이 브라우저에서는 Web Crypto API를 사용할 수 없습니다. 최신 Chrome, Edge, Safari로 다시 시도해주세요.",
+          );
+        }
 
-      let keyPair;
-      try {
-        keyPair = await window.crypto.subtle.generateKey(
-          { name: 'X25519' },
-          true,
-          ['deriveBits']
+        let keyPair;
+        try {
+          keyPair = await window.crypto.subtle.generateKey(
+            { name: "X25519" },
+            true,
+            ["deriveBits"],
+          );
+        } catch (error) {
+          throw new Error(
+            "이 브라우저는 X25519 키 생성을 지원하지 않습니다. 최신 브라우저로 다시 시도해주세요.",
+          );
+        }
+
+        const privateJwk = await window.crypto.subtle.exportKey(
+          "jwk",
+          keyPair.privateKey,
         );
-      } catch (error) {
-        throw new Error('이 브라우저는 X25519 키 생성을 지원하지 않습니다. 최신 브라우저로 다시 시도해주세요.');
+        const publicJwk = await window.crypto.subtle.exportKey(
+          "jwk",
+          keyPair.publicKey,
+        );
+
+        if (!privateJwk.d || !publicJwk.x) {
+          throw new Error(
+            "키 내보내기에 실패했습니다. 다른 최신 브라우저에서 다시 시도해주세요.",
+          );
+        }
+
+        return {
+          privateKey: base64UrlToBase64(privateJwk.d),
+          publicKey: base64UrlToBase64(publicJwk.x),
+        };
       }
 
-      const privateJwk = await window.crypto.subtle.exportKey('jwk', keyPair.privateKey);
-      const publicJwk = await window.crypto.subtle.exportKey('jwk', keyPair.publicKey);
-
-      if (!privateJwk.d || !publicJwk.x) {
-        throw new Error('키 내보내기에 실패했습니다. 다른 최신 브라우저에서 다시 시도해주세요.');
+      function buildConfig({ privateKey, address }) {
+        return `[Interface]\nPrivateKey = ${privateKey}\nAddress = ${address}\nDNS = ${APP_CONFIG.DNS}\nMTU = ${APP_CONFIG.MTU}\n\n[Peer]\nPublicKey = ${APP_CONFIG.SERVER_PUBLIC_KEY}\nAllowedIPs = ${APP_CONFIG.ALLOWED_IPS}\nEndpoint = ${APP_CONFIG.ENDPOINT}\nPersistentKeepalive = ${APP_CONFIG.PERSISTENT_KEEPALIVE}\n`;
       }
 
-      return {
-        privateKey: base64UrlToBase64(privateJwk.d),
-        publicKey: base64UrlToBase64(publicJwk.x)
-      };
-    }
-
-    function buildConfig({ privateKey, address }) {
-      return `[Interface]\nPrivateKey = ${privateKey}\nAddress = ${address}\nDNS = ${APP_CONFIG.DNS}\nMTU = ${APP_CONFIG.MTU}\n\n[Peer]\nPublicKey = ${APP_CONFIG.SERVER_PUBLIC_KEY}\nAllowedIPs = ${APP_CONFIG.ALLOWED_IPS}\nEndpoint = ${APP_CONFIG.ENDPOINT}\nPersistentKeepalive = ${APP_CONFIG.PERSISTENT_KEEPALIVE}\n`;
-    }
-
-    function buildSubmissionText({ memberName, deviceName, address, publicKey }) {
-      return [
-        `이름: ${memberName || '(미입력)'}`,
-        `기기명: ${deviceName || '(미입력)'}`,
-        `VPN 주소: ${address}`,
-        `공개키: ${publicKey}`
-      ].join('\n');
-    }
-
-    function downloadTextFile(filename, content) {
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 500);
-    }
-
-    async function copyToClipboard(text) {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        return;
+      function buildSubmissionText({
+        memberName,
+        deviceName,
+        address,
+        publicKey,
+      }) {
+        return [
+          `이름: ${memberName || "(미입력)"}`,
+          `기기명: ${deviceName || "(미입력)"}`,
+          `VPN 주소: ${address}`,
+          `공개키: ${publicKey}`,
+        ].join("\n");
       }
 
-      const temp = document.createElement('textarea');
-      temp.value = text;
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand('copy');
-      temp.remove();
-    }
+      function downloadTextFile(filename, content) {
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 500);
+      }
 
-    function parseEntryIdsFromTemplate() {
-      const templateUrl = (APP_CONFIG.FORM_PREFILL_TEMPLATE_URL || '').trim();
-      if (!templateUrl) return null;
+      async function copyToClipboard(text) {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
 
-      try {
-        const url = new URL(templateUrl);
-        const params = url.searchParams;
-        const tokens = APP_CONFIG.FORM_TEMPLATE_TOKENS || {};
-        const entryIds = {};
+        const temp = document.createElement("textarea");
+        temp.value = text;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        temp.remove();
+      }
 
-        for (const [key, token] of Object.entries(tokens)) {
-          if (!token) continue;
-          for (const [paramName, paramValue] of params.entries()) {
-            if (paramName.startsWith('entry.') && paramValue === token) {
-              entryIds[key] = paramName;
-              break;
+      function parseEntryIdsFromTemplate() {
+        const templateUrl = (APP_CONFIG.FORM_PREFILL_TEMPLATE_URL || "").trim();
+        if (!templateUrl) return null;
+
+        try {
+          const url = new URL(templateUrl);
+          const params = url.searchParams;
+          const tokens = APP_CONFIG.FORM_TEMPLATE_TOKENS || {};
+          const entryIds = {};
+
+          for (const [key, token] of Object.entries(tokens)) {
+            if (!token) continue;
+            for (const [paramName, paramValue] of params.entries()) {
+              if (paramName.startsWith("entry.") && paramValue === token) {
+                entryIds[key] = paramName;
+                break;
+              }
             }
           }
-        }
 
-        if (!entryIds.memberName || !entryIds.deviceName || !entryIds.publicKey || !entryIds.address) {
+          if (
+            !entryIds.memberName ||
+            !entryIds.deviceName ||
+            !entryIds.publicKey ||
+            !entryIds.address
+          ) {
+            return null;
+          }
+
+          return {
+            baseUrl: `${url.origin}${url.pathname}`,
+            staticParams: Array.from(params.entries()).filter(
+              ([paramName, paramValue]) => {
+                return (
+                  !(
+                    paramName === entryIds.memberName &&
+                    paramValue === tokens.memberName
+                  ) &&
+                  !(
+                    paramName === entryIds.deviceName &&
+                    paramValue === tokens.deviceName
+                  ) &&
+                  !(
+                    paramName === entryIds.publicKey &&
+                    paramValue === tokens.publicKey
+                  ) &&
+                  !(
+                    paramName === entryIds.address &&
+                    paramValue === tokens.address
+                  )
+                );
+              },
+            ),
+            entryIds,
+          };
+        } catch {
           return null;
         }
-
-        return {
-          baseUrl: `${url.origin}${url.pathname}`,
-          staticParams: Array.from(params.entries()).filter(([paramName, paramValue]) => {
-            return !(paramName === entryIds.memberName && paramValue === tokens.memberName)
-              && !(paramName === entryIds.deviceName && paramValue === tokens.deviceName)
-              && !(paramName === entryIds.publicKey && paramValue === tokens.publicKey)
-              && !(paramName === entryIds.address && paramValue === tokens.address);
-          }),
-          entryIds
-        };
-      } catch {
-        return null;
       }
-    }
 
-    function getDirectEntryIdConfig() {
-      const ids = APP_CONFIG.FORM_ENTRY_IDS || {};
-      if (!ids.memberName || !ids.deviceName || !ids.publicKey || !ids.address) return null;
-      const formUrl = (APP_CONFIG.FORM_URL || '').trim();
-      if (!formUrl) return null;
+      function getDirectEntryIdConfig() {
+        const ids = APP_CONFIG.FORM_ENTRY_IDS || {};
+        if (
+          !ids.memberName ||
+          !ids.deviceName ||
+          !ids.publicKey ||
+          !ids.address
+        )
+          return null;
+        const formUrl = (APP_CONFIG.FORM_URL || "").trim();
+        if (!formUrl) return null;
 
-      try {
-        const url = new URL(formUrl);
-        return {
-          baseUrl: `${url.origin}${url.pathname}`,
-          staticParams: Array.from(url.searchParams.entries()),
-          entryIds: {
-            memberName: ids.memberName,
-            deviceName: ids.deviceName,
-            publicKey: ids.publicKey,
-            address: ids.address
-          }
-        };
-      } catch {
-        return null;
+        try {
+          const url = new URL(formUrl);
+          return {
+            baseUrl: `${url.origin}${url.pathname}`,
+            staticParams: Array.from(url.searchParams.entries()),
+            entryIds: {
+              memberName: ids.memberName,
+              deviceName: ids.deviceName,
+              publicKey: ids.publicKey,
+              address: ids.address,
+            },
+          };
+        } catch {
+          return null;
+        }
       }
-    }
 
-    function buildPrefilledFormUrl(payload) {
-      const templateConfig = parseEntryIdsFromTemplate();
-      const directConfig = getDirectEntryIdConfig();
-      const config = templateConfig || directConfig;
-      if (!config) return '';
+      function buildPrefilledFormUrl(payload) {
+        const templateConfig = parseEntryIdsFromTemplate();
+        const directConfig = getDirectEntryIdConfig();
+        const config = templateConfig || directConfig;
+        if (!config) return "";
 
-      const url = new URL(config.baseUrl);
-      config.staticParams.forEach(([key, value]) => url.searchParams.append(key, value));
-      url.searchParams.set(config.entryIds.memberName, payload.memberName || '');
-      url.searchParams.set(config.entryIds.deviceName, payload.deviceName || '');
-      url.searchParams.set(config.entryIds.publicKey, payload.publicKey || '');
-      url.searchParams.set(config.entryIds.address, payload.address || '');
-      return url.toString();
-    }
+        const url = new URL(config.baseUrl);
+        config.staticParams.forEach(([key, value]) =>
+          url.searchParams.append(key, value),
+        );
+        url.searchParams.set(
+          config.entryIds.memberName,
+          payload.memberName || "",
+        );
+        url.searchParams.set(
+          config.entryIds.deviceName,
+          payload.deviceName || "",
+        );
+        url.searchParams.set(
+          config.entryIds.publicKey,
+          payload.publicKey || "",
+        );
+        url.searchParams.set(config.entryIds.address, payload.address || "");
+        return url.toString();
+      }
 
-    function applyFormButtons() {
-      const hasForm = !!(APP_CONFIG.FORM_URL && APP_CONFIG.FORM_URL.trim());
-      formLinkBtn.classList.toggle('hidden', !hasForm);
-      if (hasForm) formLinkBtn.href = APP_CONFIG.FORM_URL.trim();
+      function applyFormButtons() {
+        const hasForm = !!(APP_CONFIG.FORM_URL && APP_CONFIG.FORM_URL.trim());
+        formLinkBtn.classList.toggle("hidden", !hasForm);
+        if (hasForm) formLinkBtn.href = APP_CONFIG.FORM_URL.trim();
 
-      const prefilledUrl = latestGenerated ? buildPrefilledFormUrl(latestGenerated) : '';
-      const hasPrefill = !!prefilledUrl;
-      prefillFormBtn.classList.toggle('hidden', !hasPrefill);
-      if (hasPrefill) prefillFormBtn.href = prefilledUrl;
-    }
+        const prefilledUrl = latestGenerated
+          ? buildPrefilledFormUrl(latestGenerated)
+          : "";
+        const hasPrefill = !!prefilledUrl;
+        prefillFormBtn.classList.toggle("hidden", !hasPrefill);
+        if (hasPrefill) prefillFormBtn.href = prefilledUrl;
+      }
 
-    function storeRecord(record) {
-      const records = getRecords();
-      records.push(record);
-      saveRecords(records);
-      renderHistory();
-    }
+      function storeRecord(record) {
+        const records = getRecords();
+        records.push(record);
+        saveRecords(records);
+        renderHistory();
+      }
 
-    function showResult(payload) {
-      latestGenerated = payload;
-      emptyResultEl.classList.add('hidden');
-      resultSectionEl.classList.remove('hidden');
+      function renderConfigQr(configText) {
+        qrCodeBoxEl.innerHTML = "";
 
-      addressTextEl.textContent = payload.address;
-      publicKeyTextEl.textContent = payload.publicKey;
-      fileNameTextEl.textContent = payload.fileName;
-      submissionTextEl.value = payload.submissionText;
-      configPreviewEl.value = payload.configText;
-      applyFormButtons();
-    }
+        if (!window.QRCode) {
+          qrCodeBoxEl.textContent = "QR 라이브러리를 불러오지 못했습니다.";
+          return false;
+        }
 
-    generateBtn.addEventListener('click', async () => {
-      const memberName = memberNameEl.value.trim();
-      const deviceName = deviceNameEl.value.trim();
-
-      setStatus('키를 생성하는 중입니다...', '');
-      generateBtn.disabled = true;
-
-      try {
-        const { privateKey, publicKey } = await generateWireGuardKeyPair();
-        const address = pickRandomAddress();
-        const ipOnly = address.split('/')[0];
-        const fileName = `wireguard-${sanitizeFilePart(memberName, 'member')}-${sanitizeFilePart(deviceName, 'device')}-${ipOnly.replace(/\./g, '-')}.conf`;
-        const configText = buildConfig({ privateKey, address });
-        const submissionText = buildSubmissionText({ memberName, deviceName, address, publicKey });
-
-        const payload = { memberName, deviceName, publicKey, privateKey, address, fileName, configText, submissionText };
-        showResult(payload);
-
-        storeRecord({
-          createdAt: new Date().toLocaleString('ko-KR', { hour12: false }),
-          memberName,
-          deviceName,
-          publicKey,
-          address
+        new window.QRCode(qrCodeBoxEl, {
+          text: configText,
+          width: 220,
+          height: 220,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: window.QRCode.CorrectLevel.M,
         });
 
-        const prefilledUrl = buildPrefilledFormUrl(payload);
-        if (prefilledUrl && APP_CONFIG.AUTO_OPEN_PREFILLED_FORM) {
-          window.open(prefilledUrl, '_blank', 'noopener,noreferrer');
-          setStatus('발급이 완료되었습니다. .conf를 다운로드했고, 자동 입력된 폼을 새 탭으로 열 수 있습니다.', 'ok');
-        } else {
-          setStatus('발급이 완료되었습니다. .conf를 다운로드하고 공개키를 제출하세요.', 'ok');
+        return true;
+      }
+
+      function showResult(payload) {
+        latestGenerated = payload;
+        emptyResultEl.classList.add("hidden");
+        resultSectionEl.classList.remove("hidden");
+
+        addressTextEl.textContent = payload.address;
+        publicKeyTextEl.textContent = payload.publicKey;
+        fileNameTextEl.textContent = payload.fileName;
+        submissionTextEl.value = payload.submissionText;
+        configPreviewEl.value = payload.configText;
+        renderConfigQr(payload.configText);
+        applyFormButtons();
+      }
+
+      generateBtn.addEventListener("click", async () => {
+        const memberName = memberNameEl.value.trim();
+        const deviceName = deviceNameEl.value.trim();
+
+        setStatus("키를 생성하는 중입니다...", "");
+        generateBtn.disabled = true;
+
+        try {
+          const { privateKey, publicKey } = await generateWireGuardKeyPair();
+          const address = pickRandomAddress();
+          const ipOnly = address.split("/")[0];
+          const fileName = `wireguard-${sanitizeFilePart(memberName, "member")}-${sanitizeFilePart(deviceName, "device")}-${ipOnly.replace(/\./g, "-")}.conf`;
+          const configText = buildConfig({ privateKey, address });
+          const submissionText = buildSubmissionText({
+            memberName,
+            deviceName,
+            address,
+            publicKey,
+          });
+
+          const payload = {
+            memberName,
+            deviceName,
+            publicKey,
+            privateKey,
+            address,
+            fileName,
+            configText,
+            submissionText,
+          };
+          showResult(payload);
+
+          storeRecord({
+            createdAt: new Date().toLocaleString("ko-KR", { hour12: false }),
+            memberName,
+            deviceName,
+            publicKey,
+            address,
+          });
+
+          const prefilledUrl = buildPrefilledFormUrl(payload);
+          if (prefilledUrl && APP_CONFIG.AUTO_OPEN_PREFILLED_FORM) {
+            window.open(prefilledUrl, "_blank", "noopener,noreferrer");
+            setStatus(
+              "발급이 완료되었습니다. .conf를 다운로드했고, 자동 입력된 폼을 새 탭으로 열 수 있습니다.",
+              "ok",
+            );
+          } else {
+            setStatus(
+              "발급이 완료되었습니다. .conf를 다운로드하고 공개키를 제출하세요.",
+              "ok",
+            );
+          }
+        } catch (error) {
+          setStatus(error.message || "키 발급에 실패했습니다.", "error");
+        } finally {
+          generateBtn.disabled = false;
         }
-      } catch (error) {
-        setStatus(error.message || '키 발급에 실패했습니다.', 'error');
-      } finally {
-        generateBtn.disabled = false;
-      }
-    });
+      });
 
-    downloadBtn.addEventListener('click', () => {
-      if (!latestGenerated) return;
-      downloadTextFile(latestGenerated.fileName, latestGenerated.configText);
-      setStatus('.conf 파일 다운로드를 시작했습니다.', 'ok');
-    });
+      downloadBtn.addEventListener("click", () => {
+        if (!latestGenerated) return;
+        downloadTextFile(latestGenerated.fileName, latestGenerated.configText);
+        setStatus(".conf 파일 다운로드를 시작했습니다.", "ok");
+      });
 
-    copyPublicKeyBtn.addEventListener('click', async () => {
-      if (!latestGenerated) return;
-      try {
-        await copyToClipboard(latestGenerated.publicKey);
-        setStatus('공개키를 복사했습니다.', 'ok');
-      } catch {
-        setStatus('공개키 복사에 실패했습니다. 수동으로 복사해주세요.', 'error');
-      }
-    });
+      copyPublicKeyBtn.addEventListener("click", async () => {
+        if (!latestGenerated) return;
+        try {
+          await copyToClipboard(latestGenerated.publicKey);
+          setStatus("공개키를 복사했습니다.", "ok");
+        } catch {
+          setStatus(
+            "공개키 복사에 실패했습니다. 수동으로 복사해주세요.",
+            "error",
+          );
+        }
+      });
 
-    copySubmissionBtn.addEventListener('click', async () => {
-      if (!latestGenerated) return;
-      try {
-        await copyToClipboard(latestGenerated.submissionText);
-        setStatus('제출용 텍스트를 복사했습니다.', 'ok');
-      } catch {
-        setStatus('복사에 실패했습니다. 텍스트 박스에서 직접 복사해주세요.', 'error');
-      }
-    });
+      copySubmissionBtn.addEventListener("click", async () => {
+        if (!latestGenerated) return;
+        try {
+          await copyToClipboard(latestGenerated.submissionText);
+          setStatus("제출용 텍스트를 복사했습니다.", "ok");
+        } catch {
+          setStatus(
+            "복사에 실패했습니다. 텍스트 박스에서 직접 복사해주세요.",
+            "error",
+          );
+        }
+      });
 
-    clearHistoryBtn.addEventListener('click', () => {
-      localStorage.removeItem(STORAGE_KEY);
+      clearHistoryBtn.addEventListener("click", () => {
+        localStorage.removeItem(STORAGE_KEY);
+        renderHistory();
+        setStatus("이 브라우저에 저장된 로컬 기록을 삭제했습니다.", "ok");
+      });
+
+      applyFormButtons();
       renderHistory();
-      setStatus('이 브라우저에 저장된 로컬 기록을 삭제했습니다.', 'ok');
-    });
-
-    applyFormButtons();
-    renderHistory();
-  </script>
-</body>
+    </script>
+  </body>
 </html>
