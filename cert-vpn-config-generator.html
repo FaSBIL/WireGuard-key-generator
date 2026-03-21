@@ -633,6 +633,28 @@
         return cleaned || fallback;
       }
 
+      function limitFileNameLength(filename, maxLength = 15) {
+        const safeName = String(filename || "").trim() || "wireguard.conf";
+        if (safeName.length <= maxLength) return safeName;
+
+        const dotIndex = safeName.lastIndexOf(".");
+        const hasValidExt = dotIndex > 0 && dotIndex < safeName.length - 1;
+
+        if (!hasValidExt) {
+          return safeName.slice(0, maxLength);
+        }
+
+        const base = safeName.slice(0, dotIndex);
+        const ext = safeName.slice(dotIndex);
+        const maxBaseLength = maxLength - ext.length;
+
+        if (maxBaseLength <= 0) {
+          return safeName.slice(0, maxLength);
+        }
+
+        return `${base.slice(0, maxBaseLength)}${ext}`;
+      }
+
       function base64UrlToBase64(str) {
         const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
         const padLength = (4 - (base64.length % 4)) % 4;
@@ -1012,7 +1034,8 @@
           const { privateKey, publicKey } = await generateWireGuardKeyPair();
           const address = pickRandomAddress();
           const ipOnly = address.split("/")[0];
-          const fileName = `wireguard-${sanitizeFilePart(memberName, "member")}-${sanitizeFilePart(deviceName, "device")}-${ipOnly.replace(/\./g, "-")}.conf`;
+          const rawFileName = `wireguard-${sanitizeFilePart(memberName, "member")}-${sanitizeFilePart(deviceName, "device")}-${ipOnly.replace(/\./g, "-")}.conf`;
+          const fileName = limitFileNameLength(rawFileName, 15);
           const configText = buildConfig({ privateKey, address });
           const submissionText = buildSubmissionText({
             memberName,
